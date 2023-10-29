@@ -1,0 +1,21 @@
+title: plantGuessr
+description: >-
+  plantGuessr
+baseurl: /plantGuessr
+url: "https://nordegraf.github.io/"
+imageurl: "https://nordegraf.github.io/"
+author: Niklas Conen
+year: 2023
+
+# Build settings
+plugins:
+  - jekyll-seo-tag
+
+sass:
+  sass_dir: _sass
+  style: compressed
+
+exclude:
+  - Gemfile
+  - Gemfile.lock
+
