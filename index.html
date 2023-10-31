@@ -1,86 +1,86 @@
-<!DOCTYPE html>
-<html>
-  <head>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
-    crossorigin=""/>
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
-    crossorigin=""></script>
-    <script src="https://code.jquery.com/jquery-3.7.1.min.js"
-    integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo="
-    crossorigin="anonymous"></script>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
-    rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN"
-    crossorigin="anonymous">
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"
-    integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL"
-    crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
+---
+layout: default
+title: plantGuessr
+---
 
-    <link rel="stylesheet" href="assets/css/style.css">
-  </head>
-  <body>
-    <div class="loader-div">
-      <div class="loader" id="loader" style="display: none;"></div>
+<div class="loader-div">
+  <div class="loader" id="loader" style="display: none"></div>
+</div>
+
+<div id="game" style="display: none">
+  <div id="infobutton" class="infobutton">
+    <i class="fa-regular fa-circle-question"></i>
+  </div>
+  <div id="info" class="info">
+    <div class="infotext">
+      <h3>How to play</h3>
+      <p>
+        When starting a round the game shows you a maximum of 10 images of the same species. Your task is to guess where in the world this species can be found. You can do this by clicking on the map. The closer you are to the actual distribution of the species, the more points you get. One game consists of five rounds. After each round you will be shown the correct distribution of the species and the species name.
+      </p>
     </div>
+  </div>
 
+  <div id="map" class="smallWindow small"></div>
+  <div id="score">
+    <div id="score-title">Score</div>
+    <div id="score-value">0</div>
+  </div>
 
-    <div id="game" style="display: none">
-    <div class="row">
-      <div class="col-md-8 element">
-        <div id="map"></div>
-      </div>
-      <div class="col-md-4 img element">
-        <div class="loader-div">
-          <div id="imageloader" class="loader" style="display: none;"></div>
-        </div>
-        <div id="carouselPlant" class="carousel slide">
-          <div class="carousel-inner" id="images">
-          </div>
-          <button class="carousel-control-prev" type="button" data-bs-target="#carouselPlant" data-bs-slide="prev">
-            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-            <span class="visually-hidden">Previous</span>
-          </button>
-          <button class="carousel-control-next" type="button" data-bs-target="#carouselPlant" data-bs-slide="next">
-            <span class="carousel-control-next-icon" aria-hidden="true"></span>
-            <span class="visually-hidden">Next</span>
-          </button>
-        </div>
-        <div id="name" style="display: none;"></div>
-      </div>
-    </div>
+  <button
+    type="button"
+    class="btn btn-primary btn-lg"
+    id="next"
+    style="display: none"
+  >
+    Next Round
+  </button>
 
-    <div class="row">
-      <div class="col-md-12 element">
-        <div id="score">
-          <div id="score-title">Score</div>
-          <div id="score-value">0</div>
-        </div>
-
-        <button type="button" class="btn btn-primary btn-lg" id="next" style="display: none;">Next Round</button>
-
-        <div id="end" style="display: none">
-          <div>Game Over</div>
-          <div>Your score is <span id="end-score-value">0</span></div>
-          <button type="button" class="btn btn-primary btn-lg" id="restart">Restart</button>
-        </div>
-      </div>
-    </div>
-    </div>
-
-    <!-- Cookie Banner -->
-  <div id="cookie-banner" class="alert alert-dark text-center mb-0" role="alert">
-    This website uses services of OpenStreetMap to display maps. To play the game you will need to consent to the use of this services.
-    <button type="button" class="btn btn-primary btn-sm ms-3" id="cookies">
-    I Got It
+  <div id="end" style="display: none">
+    <div>Game Over</div>
+    <div>Your score is <span id="end-score-value">0</span></div>
+    <button type="button" class="btn btn-primary btn-lg" id="restart">
+      Restart
     </button>
+  </div>
+  <div class="largeWindow">
+    <div class="loader-div">
+      <div id="imageloader" class="loader" style="display: none"></div>
     </div>
-  <!-- End of Cookie Banner -->
+    <div id="carouselPlant" class="carousel slide">
+      <div class="carousel-inner" id="images"></div>
+      <button
+        class="carousel-control-prev"
+        type="button"
+        data-bs-target="#carouselPlant"
+        data-bs-slide="prev"
+      >
+        <div class="control-button">
+        <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+        <span class="visually-hidden">Previous</span>
+        </div>
+      </button>
+      <button
+        class="carousel-control-next"
+        type="button"
+        data-bs-target="#carouselPlant"
+        data-bs-slide="next"
+      >
+      <div class="control-button">
+        <span class="carousel-control-next-icon" aria-hidden="true"></span>
+        <span class="visually-hidden">Next</span>
+      </div>
+      </button>
+    </div>
+    <div id="name" style="display: none"></div>
+  </div>
+</div>
 
-
-
-    <script src="assets/js/scripts.js"></script>
-
-  </body>
-</html>
+<!-- Cookie Banner -->
+<div id="cookie-banner" class="alert alert-dark text-center mb-0" role="alert">
+  This website uses services of OpenStreetMap to display maps. To play the game
+  you will need to consent to the use of this services.
+  <button type="button" class="btn btn-primary btn-sm ms-3" id="cookies">
+    I Got It
+  </button>
+</div>
+<!-- End of Cookie Banner -->

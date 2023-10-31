@@ -1,15 +1,13 @@
 ---
 ---
 
-//create map object and set default positions and zoom level
-resize_map();
 
-var map = null;
 var species = null;
 var score = 0;
 var numspecies = 114800; // number of species in the plantGuessrData repo
 
 // variables for painting the solution
+var map = null;
 var marker = null;
 var countries = null;
 var line = null;
@@ -17,8 +15,29 @@ var closestPoint = null;
 
 var mapsol = null;
 
-game();
+var game = {
+    "map": null,
+    "marker": null,
+    "countries": null,
+    "line": null,
+    "closestPoint": null,
+    "mapsol": null,
+    "numspecies": 114800,  // number of species in the plantGuessrData repo
+}
 
+var score = {
+    "total": 0,
+    "rounds": []
+}
+
+function createGame() {
+}
+
+function initMap() {
+
+}
+
+game();
 
 function game() {
     $(document).ready(function() {
@@ -72,10 +91,59 @@ function end_game() {
     $("#end-score-value").text(score);
 }
 
+function resizeMapWindow() {
+    if ($("#map").hasClass("large")) {
+        $("#map").removeClass("large");
+        $("#map").addClass("small");
+    } else {
+        $("#map").removeClass("small");
+        $("#map").addClass("large");
+    }
+}
+
+
+
 function init_game() {
     $("#game").show();
 
-    map = L.map('map').setView([20, 0], 2);
+    map = L.map('map', {
+        zoomControl: false,
+        zoomSnap: 0.1,
+        minZoom: 2,
+        zoomDelta: 0.1,
+        wheelPxPerZoomLevel: 300,
+    }).setView([0, 0], 2);
+
+    L.control.zoom({
+        position: 'bottomright'
+    }).addTo(map);
+
+    // stop click on custom control propagating to map
+    $(".leaflet-control-resize").click(function(e) {
+        e.stopPropagation();
+    });
+
+    // custom control for resizing the map
+    L.Control.resize = L.Control.extend({
+        onAdd: function(map) {
+            this._div = L.DomUtil.create('div', 'leaflet-control-resize');
+            L.DomEvent.disableClickPropagation(this._div);
+            this._div.innerHTML = '<i class="fas fa-up-right-and-down-left-from-center expand"></i>';
+            this._div.onclick = resizeMapWindow;
+            map.invalidateSize();
+            return this._div;
+        }
+    });
+
+    L.control.resize = function(opts) {
+        return new L.Control.resize(opts);
+    }
+
+    L.control.resize({
+        position: 'topleft'
+    }).addTo(map);
+
+    map.setMaxBounds([[-90, -180], [90, 180]]);
     L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png', {
         attribution: '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors',
         noWrap: true
@@ -87,10 +155,16 @@ function init_game() {
             return {
                 color: "#000000",
                 weight: 1,
-                fillOpacity: 0.1
+                fillOpacity: 0.0
             };
         }
     }).addTo(map);
+
+    const resizeObserver = new ResizeObserver(entries => {
+        map.invalidateSize();
+    });
+
+    resizeObserver.observe(document.getElementById('map'));
 }
 
 // wait for user to click cookie consent
@@ -147,6 +221,8 @@ function calculate_distance(lat, lon, sol) {
 
         if (turf.booleanPointInPolygon(guess, country)) {
             dist = 0;
+            closestPoint = guess;
+            return;
         }
 
         var lines = turf.flatten(turf.polygonToLineString(country));
@@ -189,17 +265,11 @@ function color_solution(sol) {
 }
 
 function guessLine(guess, closestPoint, dist) {
-    var solline = turf.lineString([ [guess.latlng.lng, guess.latlng.lat], [closestPoint.geometry.coordinates[0], closestPoint.geometry.coordinates[1]] ]);
-
-    line = L.geoJSON(solline, {
-        style: function(feature) {
-            return {
-                color: "#0000ff",
-                weight: 2,
-                fillOpacity: 0.2
-            };
-        }
-    }).addTo(map);//.tooltip("Distance: " + Math.round(dist) + " km").bindTooltip().openTooltip().addTo(map);
+    line = new L.Geodesic([guess.latlng, [closestPoint.geometry.coordinates[1], closestPoint.geometry.coordinates[0]]]).addTo(map);
+    line.setStyle({
+        color: "#0000ff",
+        weight: 2
+    });
 }
 
 function update_score(dist) {
@@ -210,7 +280,7 @@ function update_score(dist) {
 function calculate_score(dist) {
     var max_score = 5000;
     var min_dist = 0;
-    var max_dist = 1000;
+    var max_dist = 2000;
 
     // score is max_score at min_dist, 0 at max_dist
     var score = Math.round(Math.min(Math.max(max_score * (1 - (dist - min_dist) / (max_dist - min_dist)), 0), max_score), 0);
@@ -233,12 +303,20 @@ function get_data(isp){
         $("#images").empty();
 
         for (var i = 0; i < imgs.length; i++) {
-            $("#images").append("<div class='carousel-item' id='plant-" + i + "'></div>");
-        }
 
-        for (var i = 0; i < imgs.length; i++) {
-            var img = $("<img />").attr('src', imgs[i]).addClass('d-block w-100 plant-img');
-            $("#plant-" + i).append(img);
+            var author = data.r[i];
+            var license = data.l[i];
+            var active = (i == 0) ? " active" : "";
+            var img = $("<img />").attr('src', imgs[i]).addClass('d-block plant-img');
+
+            $("#images").append(`<div class='carousel-item${active}' id='plant-${i}'>
+            <div class="image-container">
+            ${img.prop('outerHTML')}
+            <div class="attribution">
+                <span class="attribution">${author} | ${licenseAnchor(license)}</span>
+            </div>
+            </div>
+            </div>`);
         }
 
         imageLoader();
@@ -250,12 +328,24 @@ function get_data(isp){
             $(".carousel-control-prev").hide();
             $(".carousel-control-next").hide();
         }
-
-        // set carousel to first image
-        $("#plant-0").addClass("active");
     });
 
     return nobs;
+}
+
+function licenseAnchor(license) {
+
+    var link = "";
+    if (license == "CC0 1.0") {
+        link = "https://creativecommons.org/publicdomain/zero/1.0/";
+    } else if (license == "CC BY 4.0") {
+        link = "https://creativecommons.org/licenses/by/4.0/";
+    } else if (license == "CC BY-NC 4.0") {
+        link = "https://creativecommons.org/licenses/by-nc/4.0/";
+    }
+
+    return `<a href="${link}" class="license">${license}</a>`;
+
 }
 
 function imageLoader() {
@@ -269,15 +359,12 @@ function imageLoader() {
         if (loaded == numImages) {
             $("#imageloader").hide();
         }
-
-        console.log("loaded " + loaded + " of " + numImages)
     });
 }
 
 function resize_map() {
     var height = $(window).height();
-    $("#map").height(height - 200);
-    $("#plant").height(height - 200);
+    $("#map").height(height);
 }
 
 function showName(name) {
@@ -300,3 +387,20 @@ function loading(promises) {
         $("#loader").hide();
     });
 }
+
+function showInfo() {
+    var info = $(".infotext");
+
+    if (info.hasClass("expanded")) {
+        info.removeClass("expanded");
+    } else {
+        info.addClass("expanded");
+    }
+}
+
+$(document).ready(function() {
+    $(".infobutton").on('click', function() {
+        showInfo();
+    });
+
+});
