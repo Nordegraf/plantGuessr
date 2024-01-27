@@ -7,7 +7,8 @@ body {
 }
 
 .largeWindow {
-    height: 100%;
+    height: 100vh;
+    width: 100vw;
 }
 
 .smallWindow {
@@ -156,8 +157,9 @@ a.license:hover {
 }
 
 div.image-container {
-    width: auto;
-    height: auto;
+    position: relative;
+    width:  100%;
+    height: 100%;
 }
 
 .infobutton {
@@ -206,6 +208,7 @@ div.image-container {
     transition: opacity 0.5s ease-in-out;
     padding-bottom: 20px;
     padding-left: 20px;
+    padding-right: 25px;
     border-radius: 10px;
 }
 
@@ -222,4 +225,13 @@ div.image-container {
     padding: 10px;
     background-color: rgba(0, 0, 0, 0.8);
     border-radius: 5px;
+}
+
+.btn-lowerleft {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    margin-right: 20px;
+    margin-bottom: 20px;
+    z-index: 1000;
 }
