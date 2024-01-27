@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!-- Begin Jekyll SEO tag v2.8.0 -->
+    <title>FAQ | plantGuessr</title>
+    <meta name="generator" content="Jekyll v4.3.2" />
+    <meta property="og:title" content="FAQ" />
+    <meta name="author" content="Niklas Conen" />
+    <meta property="og:locale" content="en_US" />
+    <meta
+      name="description"
+      content="How to play? When starting a round the game shows you a maximum of 10 images of the same species. Your task is to guess where in the world this species can be found. You can do this by clicking on the map. The closer you are to the actual distribution of the species, the more points you get. One game consists of five rounds. After each round you will be shown the correct distribution of the species and the species name."
+    />
+    <meta
+      property="og:description"
+      content="How to play? When starting a round the game shows you a maximum of 10 images of the same species. Your task is to guess where in the world this species can be found. You can do this by clicking on the map. The closer you are to the actual distribution of the species, the more points you get. One game consists of five rounds. After each round you will be shown the correct distribution of the species and the species name."
+    />
+    <link rel="canonical" href="https://nordegraf.github.io//plantGuessr/faq" />
+    <meta
+      property="og:url"
+      content="https://nordegraf.github.io//plantGuessr/faq"
+    />
+    <meta property="og:site_name" content="plantGuessr" />
+    <meta property="og:type" content="article" />
+    <meta
+      property="article:published_time"
+      content="2024-01-27T14:39:32+00:00"
+    />
+    <meta name="twitter:card" content="summary" />
+    <meta property="twitter:title" content="FAQ" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "BlogPosting",
+        "author": { "@type": "Person", "name": "Niklas Conen" },
+        "dateModified": "2024-01-27T14:39:32+00:00",
+        "datePublished": "2024-01-27T14:39:32+00:00",
+        "description": "How to play? When starting a round the game shows you a maximum of 10 images of the same species. Your task is to guess where in the world this species can be found. You can do this by clicking on the map. The closer you are to the actual distribution of the species, the more points you get. One game consists of five rounds. After each round you will be shown the correct distribution of the species and the species name.",
+        "headline": "FAQ",
+        "mainEntityOfPage": {
+          "@type": "WebPage",
+          "@id": "https://nordegraf.github.io//plantGuessr/faq"
+        },
+        "url": "https://nordegraf.github.io//plantGuessr/faq"
+      }
+    </script>
+    <!-- End Jekyll SEO tag -->
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+      crossorigin=""
+    />
+    <script
+      src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+      integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+      crossorigin=""
+    ></script>
+    <script
+      src="https://cdn.jsdelivr.net/npm/leaflet.geodesic@2.7.1/dist/leaflet.geodesic.umd.min.js"
+      integrity="sha256-GrhV8bouTGDqfZXQnNESURjbccJpaPwWfDPzhCobBYU="
+      crossorigin="anonymous"
+    ></script>
+    <script
+      src="https://code.jquery.com/jquery-3.7.1.min.js"
+      integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo="
+      crossorigin="anonymous"
+    ></script>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+      integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN"
+      crossorigin="anonymous"
+    />
+    <script
+      src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"
+      integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL"
+      crossorigin="anonymous"
+    ></script>
+    <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
+
+    <link rel="stylesheet" href="/plantGuessr/assets/css/style.css" />
+    <link rel="icon" type="image/png" href="/plantGuessr/favicon.ico" />
+    <script src="assets/js/scripts.js"></script>
+  </head>
+
+  <body>
+    <h2 id="how-to-play">How to play?</h2>
+    <p>
+      When starting a round the game shows you a maximum of 10 images of the
+      same species. Your task is to guess where in the world this species can be
+      found. You can do this by clicking on the map. The closer you are to the
+      actual distribution of the species, the more points you get. One game
+      consists of five rounds. After each round you will be shown the correct
+      distribution of the species and the species name.
+    </p>
+
+    <h2 id="what-countries-can-be-selected">What countries can be selected?</h2>
+    <p>
+      Strictly speaking the game is not using countries, but rather all regions
+      that have a ISO 3366-1 alpha-2 code. This includes countries, but also
+      dependent terretories and some special areas. For example, a lot of the
+      british or french overseas terretories like French Guiana or St.Helena
+      have their own code.
+    </p>
+
+    <p>
+      A full list of ISO codes is given on
+      <a
+        href="https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2#Officially_assigned_code_elements"
+        >Wikipedia</a
+      >.
+    </p>
+
+    <p>
+      The map data is taken from
+      <a href="https://www.naturalearthdata.com/">Natural Earth</a>. To be more
+      specific it is the <em>1:10m Cultural Vectors</em> dataset with ISO POV,
+      converted to GeoJSON. Some disputed areas are not assigned to any ISO
+      code. As the regions borders are drawn into the map, you will be able to
+      see which areas are not included in any region.
+    </p>
+
+    <p>
+      In no way does plantGuessr take a political stance on any borders,
+      disputed areas or similar. If you have any inquiries about the map data,
+      please contact Natural Earth.
+    </p>
+
+    <h2 id="where-does-the-data-come-from">Where does the data come from?</h2>
+    <p>
+      The distribution data is taken from the
+      <a href="https://www.inaturalist.org/pages/developers"
+        >iNaturalist DarwinCore Archive</a
+      >. It consists of all research grade observations iNaturalist shares with
+      GBIF. Observations and images in the dataset are licensed under
+      <a href="https://creativecommons.org/publicdomain/zero/1.0/">CC0 1.0</a>,
+      <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a> or
+      <a href="https://creativecommons.org/licenses/by-nc/4.0/">CC BY-NC 4.0</a
+      >. The images shown to you are hosted on iNaturalist and the respective
+      right holders to them are always given on the image.
+    </p>
+
+    <p>
+      If you interested in the way the data was processed, you can find the
+      Python files used in the
+      <a href="https://nordegraf.github.io/plantGuessr/"
+        >plantGuessr GitHub Repository</a
+      >.
+    </p>
+
+    <p>
+      As mentioned above the map data is taken from
+      <a href="https://www.naturalearthdata.com/">Natural Earth</a> and is
+      public domain.
+    </p>
+
+    <h2 id="how-does-the-scoring-work">How does the scoring work?</h2>
+    <p>
+      The score is calculated from the distance of your guess to the closest
+      point on the border of all regions a species is found in. The closer you
+      are to the border, the more points you get. The maximum score per guess is
+      5000 points and gets awarded if you click inside of any region a species
+      is found in.
+    </p>
+
+    <h2 id="i-found-some-way-to-cheat">I found some way to cheat!</h2>
+    <p>
+      It’s really easy to cheat plantGuessr. As the site is hosted on GitHub
+      Pages it is static and all the data is available to you. You can simply
+      open the developer tools, find the id of the species currently shown and
+      get it’s distribution from the corresponding JSON object in the
+      <a href="https://github.com/Nordegraf/plantGuessrData">plantGuessrData</a>
+      Repository.
+    </p>
+  </body>
+</html>

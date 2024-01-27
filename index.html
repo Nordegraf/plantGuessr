@@ -1,6 +1,37 @@
 <!DOCTYPE html>
 <html>
   <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!-- Begin Jekyll SEO tag v2.8.0 -->
+    <title>plantGuessr | plantGuessr</title>
+    <meta name="generator" content="Jekyll v4.3.2" />
+    <meta property="og:title" content="plantGuessr" />
+    <meta name="author" content="Niklas Conen" />
+    <meta property="og:locale" content="en_US" />
+    <meta name="description" content="plantGuessr" />
+    <meta property="og:description" content="plantGuessr" />
+    <link rel="canonical" href="https://nordegraf.github.io//plantGuessr/" />
+    <meta
+      property="og:url"
+      content="https://nordegraf.github.io//plantGuessr/"
+    />
+    <meta property="og:site_name" content="plantGuessr" />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary" />
+    <meta property="twitter:title" content="plantGuessr" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "author": { "@type": "Person", "name": "Niklas Conen" },
+        "description": "plantGuessr",
+        "headline": "plantGuessr",
+        "name": "plantGuessr",
+        "url": "https://nordegraf.github.io//plantGuessr/"
+      }
+    </script>
+    <!-- End Jekyll SEO tag -->
     <link
       rel="stylesheet"
       href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
@@ -11,6 +42,11 @@
       src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
       integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
       crossorigin=""
+    ></script>
+    <script
+      src="https://cdn.jsdelivr.net/npm/leaflet.geodesic@2.7.1/dist/leaflet.geodesic.umd.min.js"
+      integrity="sha256-GrhV8bouTGDqfZXQnNESURjbccJpaPwWfDPzhCobBYU="
+      crossorigin="anonymous"
     ></script>
     <script
       src="https://code.jquery.com/jquery-3.7.1.min.js"
@@ -30,77 +66,100 @@
     ></script>
     <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
 
-    <link rel="stylesheet" href="assets/css/style.css" />
+    <link rel="stylesheet" href="/plantGuessr/assets/css/style.css" />
+    <link rel="icon" type="image/png" href="/plantGuessr/favicon.ico" />
+    <script src="assets/js/scripts.js"></script>
   </head>
+
   <body>
     <div class="loader-div">
       <div class="loader" id="loader" style="display: none"></div>
     </div>
 
     <div id="game" style="display: none">
-      <div class="row">
-        <div class="col-md-8 element">
-          <div id="map"></div>
+      <div id="infobutton" class="infobutton">
+        <i class="fa-regular fa-circle-question"></i>
+      </div>
+      <div id="info" class="info">
+        <div class="infotext">
+          <h3>How to play</h3>
+          <p>
+            When starting a round the game shows you a maximum of 10 images of
+            the same species. Your task is to guess where in the world this
+            species can be found. You can do this by clicking on the map. The
+            closer you are to the actual distribution of the species, the more
+            points you get. One game consists of five rounds. After each round
+            you will be shown the correct distribution of the species and the
+            species name. More information is given in the
+            <a href="/plantGuessr/faq">FAQ</a>.
+          </p>
         </div>
-        <div class="col-md-4 img element">
-          <div class="loader-div">
-            <div id="imageloader" class="loader" style="display: none"></div>
-          </div>
-          <div id="carouselPlant" class="carousel slide">
-            <div class="carousel-inner" id="images"></div>
-            <button
-              class="carousel-control-prev"
-              type="button"
-              data-bs-target="#carouselPlant"
-              data-bs-slide="prev"
-            >
+      </div>
+
+      <div id="map" class="smallWindow small"></div>
+      <div id="score">
+        <div id="score-title">Score</div>
+        <table id="scoreboard">
+          <tr>
+            <th>Round</th>
+            <th>Score</th>
+          </tr>
+        </table>
+      </div>
+
+      <button
+        type="button"
+        class="btn btn-primary btn-lg btn-lowerleft"
+        id="next"
+        style="display: none"
+      >
+        Next Round
+      </button>
+
+      <button
+        type="button"
+        class="btn btn-primary btn-lg btn-lowerleft"
+        id="restart"
+        style="display: none"
+      >
+        Restart
+      </button>
+      <div class="largeWindow">
+        <div class="loader-div">
+          <div id="imageloader" class="loader" style="display: none"></div>
+        </div>
+        <div id="carouselPlant" class="carousel slide">
+          <div class="carousel-inner" id="images"></div>
+          <button
+            class="carousel-control-prev"
+            type="button"
+            data-bs-target="#carouselPlant"
+            data-bs-slide="prev"
+          >
+            <div class="control-button">
               <span
                 class="carousel-control-prev-icon"
                 aria-hidden="true"
               ></span>
               <span class="visually-hidden">Previous</span>
-            </button>
-            <button
-              class="carousel-control-next"
-              type="button"
-              data-bs-target="#carouselPlant"
-              data-bs-slide="next"
-            >
+            </div>
+          </button>
+          <button
+            class="carousel-control-next"
+            type="button"
+            data-bs-target="#carouselPlant"
+            data-bs-slide="next"
+          >
+            <div class="control-button">
               <span
                 class="carousel-control-next-icon"
                 aria-hidden="true"
               ></span>
               <span class="visually-hidden">Next</span>
-            </button>
-          </div>
-          <div id="name" style="display: none"></div>
-        </div>
-      </div>
-
-      <div class="row">
-        <div class="col-md-12 element">
-          <div id="score">
-            <div id="score-title">Score</div>
-            <div id="score-value">0</div>
-          </div>
-
-          <button
-            type="button"
-            class="btn btn-primary btn-lg"
-            id="next"
-            style="display: none"
-          >
-            Next Round
+            </div>
           </button>
-
-          <div id="end" style="display: none">
-            <div>Game Over</div>
-            <div>Your score is <span id="end-score-value">0</span></div>
-            <button type="button" class="btn btn-primary btn-lg" id="restart">
-              Restart
-            </button>
-          </div>
         </div>
+        <div id="name" style="display: none"></div>
       </div>
     </div>
 
@@ -117,7 +176,5 @@
       </button>
     </div>
     <!-- End of Cookie Banner -->
-
-    <script src="assets/js/scripts.js"></script>
   </body>
 </html>
