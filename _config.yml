@@ -6,10 +6,16 @@ url: "https://nordegraf.github.io/"
 imageurl: "https://nordegraf.github.io/"
 author: Niklas Conen
 year: 2023
+last_updated: 2023-10-28
 
 # Build settings
 plugins:
   - jekyll-seo-tag
+
+collections:
+  pages:
+    output: true
+    permalink: /:name
 
 sass:
   sass_dir: _sass

@@ -1,302 +1,562 @@
 ---
 ---
 
-//create map object and set default positions and zoom level
-resize_map();
+function resizeMapWindow() {
+    if ($("#map").hasClass("large")) {
+        $("#map").removeClass("large");
+        $("#map").addClass("small");
+    } else {
+        $("#map").removeClass("small");
+        $("#map").addClass("large");
+    }
+}
 
-var map = null;
-var species = null;
-var score = 0;
-var numspecies = 114800; // number of species in the plantGuessrData repo
+// custom control for resizing the map
+L.Control.resize = L.Control.extend({
+    onAdd: function (map) {
+        this._div = L.DomUtil.create('div', 'leaflet-control-resize');
+        L.DomEvent.disableClickPropagation(this._div);
+        this._div.innerHTML = '<i class="fas fa-up-right-and-down-left-from-center expand"></i>';
+        this._div.onclick = resizeMapWindow;
+        map.invalidateSize();
+        return this._div;
+    }
+});
 
-// variables for painting the solution
-var marker = null;
-var countries = null;
-var line = null;
-var closestPoint = null;
+L.control.resize = function (opts) {
+    return new L.Control.resize(opts);
+}
 
-var mapsol = null;
+class GameMap {
 
-game();
+    constructor() {
+        this.map = null;
+        this.countriesGeoJSON = null;
+        this.guessMarker = null;
+        this.lineToGuess = null;
+        this.closestPointToGuess = null;
+        this.coloredSolutionOnMap = null;
+        this.guessMarker = null;
+    }
 
+    async init() {
+        await this.loadCountryGeoJSON();
+        this.initLeafletMap();
+    }
 
-function game() {
-    $(document).ready(function() {
+    initLeafletMap() {
 
-        // to start the game the following must be done:
-        // 1. getting user consent for OpenStreetMap and iNaturalist
-        // 2. loading the json data for the species and their distribution
-        // 3. beginning the first round
-        var countries_load = load_countries();
-        var consent = Promise.resolve(get_consent());
+        console.assert(this.countriesGeoJSON !== null, "GameMap init called before countriesGeoJSON is loaded")
 
-        loading([consent, countries_load]);
+        // only call this, when the geoJson data is loaded
+        this.map = L.map('map', {
+            zoomControl: false,
+            zoomSnap: 0.1,
+            minZoom: 2,
+            zoomDelta: 0.1,
+            wheelPxPerZoomLevel: 300,
+        }).setView([0, 0], 2);
 
-        // wait for 1 and 2 to resolve
-        Promise.all([consent, countries_load]).then(function() {
-            init_game();
+        this.map.setMaxBounds([[-90, -180], [90, 180]]);
 
-            var num_rounds = 5;
+        L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors',
+            noWrap: true
+        }).addTo(this.map);
 
-            round()
+        // controls
+        L.control.zoom({
+            position: 'bottomright'
+        }).addTo(this.map);
 
-            $("#next").click(function() {
-                $("#name").hide();
-                $("#next").hide();
-                num_rounds--;
+        L.control.resize({
+            position: 'topleft'
+        }).addTo(this.map);
 
-                if (marker !== null) {
-                    map.removeLayer(marker);
-                    map.removeLayer(mapsol);
-                    map.removeLayer(line);
-                }
-
-                if (num_rounds > 0) {
-                    round();
-                } else {
-                    end_game();
-                }
-            });
-
-            $("#restart").click(function() {
-                window.location.reload();
-            });
+        // stop click on custom control from propagating to map
+        $(".leaflet-control-resize").click(function (e) {
+            e.stopPropagation();
         });
 
-    });
-}
-
-function end_game() {
-    $("#score").hide();
-    $("#end").show();
-    $("#end-score-value").text(score);
-}
-
-function init_game() {
-    $("#game").show();
-
-    map = L.map('map').setView([20, 0], 2);
-    L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors',
-        noWrap: true
-    }).addTo(map);
-
-    // add countries
-    L.geoJSON(countries, {
-        style: function(feature) {
-            return {
-                color: "#000000",
-                weight: 1,
-                fillOpacity: 0.1
-            };
-        }
-    }).addTo(map);
-}
-
-// wait for user to click cookie consent
-function get_consent() {
-    return new Promise(function(resolve, reject) {
-        // check if cookie is set
-        if (document.cookie.indexOf("consent=true") >= 0) {
-            $("#cookie-banner").hide();
-            resolve();
-        }
-
-        $("#cookies").click(function() {
-            resolve();
-
-            document.cookie = "consent=true; expires=Fri, 31 Dec 9999 23:59:59 GMT; path=/"
-
-            $("#cookie-banner").hide();
-        });
-    });
-};
-
-function round() {
-    // get random species
-    isp = Math.floor(Math.random()*numspecies);
-
-    // wait for nobs promise to resolve
-    var nobs = get_data(isp);//dummy_img();
-
-    Promise.resolve(nobs).then(function() {
-        //add marker on click, remove old marker if it exists
-        map.on('click', addMarker);
-
-        function addMarker(e){
-            marker = L.marker(e.latlng).addTo(map);
-            solc = get_solution_geojson(countries, species.c);
-            showName(species.s);
-            color_solution(solc);
-            var dist = calculate_distance(e.latlng.lat, e.latlng.lng, solc);
-            guessLine(e, closestPoint, dist);
-            update_score(dist);
-            $("#next").show();
-            map.off('click', addMarker);
-        }
-    });
-}
-
-function calculate_distance(lat, lon, sol) {
-    var guess = turf.point([lon, lat]);
-
-    var dist = 100000000;
-
-    // for each line in a polygon calculate the distance to the guess
-    sol.features.forEach(function(country) {
-
-        if (turf.booleanPointInPolygon(guess, country)) {
-            dist = 0;
-        }
-
-        var lines = turf.flatten(turf.polygonToLineString(country));
-
-        lines.features.forEach(function(line) {
-            var d = turf.pointToLineDistance(guess, line);
-            if (d < dist) {
-                dist = d;
-                closestPoint = turf.nearestPointOnLine(line, guess);
+        // add countries
+        L.geoJSON(this.countriesGeoJSON, {
+            style: function (feature) {
+                return {
+                    color: "#000000",
+                    weight: 1,
+                    fillOpacity: 0.0
+                };
             }
+        }).addTo(this.map);
+
+        const resizeObserver = new ResizeObserver(entries => {
+            this.map.invalidateSize();
         });
-    });
 
-    return dist;
-}
+        resizeObserver.observe(document.getElementById('map'));
+    }
 
-function get_solution_geojson(countries, solution) {
-    console.log(solution);
+    async loadCountryGeoJSON() {
+        let url = "{{ "/assets/data/countries.geojson" | relative_url }}"
 
-    var features = countries.features.filter(function(country) {
-        return solution.includes(country.properties.ISO);
-    });
+        const response = await fetch(url);
+        this.countriesGeoJSON = await response.json();
 
-    var collection = turf.featureCollection(features);
+    }
 
-    return collection;
-}
+    getCountryGeoJSON() {
+        return this.countriesGeoJSON;
+    }
 
-function color_solution(sol) {
-    mapsol = L.geoJSON(sol, {
-        style: function(feature) {
-            return {
-                color: "#ff0000",
-                weight: 2,
-                fillOpacity: 0.2
-            };
+    getSolutionLocationsGeoJSON(solution) {
+        let features = this.countriesGeoJSON.features.filter(function (country) {
+            return solution.includes(country.properties.ISO);
+        });
+
+        let collection = turf.featureCollection(features);
+
+        return collection;
+    }
+
+    colorSolution(solutionGeoJSON) {
+        this.coloredSolutionOnMap = L.geoJSON(solutionGeoJSON, {
+            style: function (feature) {
+                return {
+                    color: "#ff0000",
+                    weight: 2,
+                    fillOpacity: 0.2
+                };
+            }
+        }).addTo(this.map);
+    }
+
+    drawLineFromGuessToClosestPoint() {
+        this.lineToGuess = new L.Geodesic([this.guessMarker.getLatLng(),
+        [this.closestPointToGuess.geometry.coordinates[1],
+        this.closestPointToGuess.geometry.coordinates[0]]
+        ]).addTo(this.map);
+
+
+        this.lineToGuess.setStyle({
+            color: "#0000ff",
+            weight: 2
+        });
+    }
+
+    addOnClick() {
+        this.map.on('click', onGuessClick);
+    }
+
+    removeOnClick() {
+        this.map.off('click', onGuessClick);
+    }
+
+    clear() {
+        if (this.guessMarker !== null) {
+            this.map.removeLayer(this.guessMarker);
+            this.map.removeLayer(this.lineToGuess);
+            this.map.removeLayer(this.coloredSolutionOnMap);
         }
-    }).addTo(map);
+    }
 
+    getLeafletMap() {
+        return this.map;
+    }
+
+    drawMarker(lat, lon) {
+        this.guessMarker = L.marker([lat, lon]).addTo(this.map);
+    }
+
+    calculateDistanceFromGuessToSolution(guessLatLng, solutionGeoJSON) {
+        let lat = guessLatLng.lat;
+        let lon = guessLatLng.lng;
+
+        let guess = turf.point([lon, lat]);
+        let dist = 100000000;
+
+        let self = this;
+
+        // for each line in a polygon calculate the distance to the guess
+        solutionGeoJSON.features.forEach(function (country) {
+
+            if (turf.booleanPointInPolygon(guess, country)) {
+                dist = 0;
+                self.closestPointToGuess = guess;
+                return;
+            }
+
+            let lines = turf.flatten(turf.polygonToLineString(country));
+
+            lines.features.forEach(function (line) {
+                var d = turf.pointToLineDistance(guess, line);
+                if (d < dist) {
+                    dist = d;
+                    self.closestPointToGuess = turf.nearestPointOnLine(line, guess);
+                }
+            });
+        });
+
+        return dist;
+    }
+
+    calculateScore(dist) {
+        var max_score = 5000;
+        var min_dist = 0;
+        var max_dist = 20000;
+
+        // score is max_score at min_dist, 0 at max_dist
+        var score = Math.round(Math.min(Math.max(max_score * (1 - (dist - min_dist) / (max_dist - min_dist)), 0), max_score), 0);
+
+        return score;
+    }
+
+    evaluateGuess(e, self, species) {
+        let map = e.target;
+
+        self.guessMarker = L.marker(e.latlng).addTo(map);
+
+        let isoCodes = species.getISOCodes();
+        let solutionGeoJSON = self.getSolutionLocationsGeoJSON(isoCodes);
+        self.colorSolution(solutionGeoJSON);
+
+        let distance = self.calculateDistanceFromGuessToSolution(e.latlng, solutionGeoJSON);
+        self.drawLineFromGuessToClosestPoint();
+
+        let score = self.calculateScore(distance);
+
+        return score
+    }
 }
 
-function guessLine(guess, closestPoint, dist) {
-    var solline = turf.lineString([ [guess.latlng.lng, guess.latlng.lat], [closestPoint.geometry.coordinates[0], closestPoint.geometry.coordinates[1]] ]);
+class GameWindow {
 
-    line = L.geoJSON(solline, {
-        style: function(feature) {
-            return {
-                color: "#0000ff",
-                weight: 2,
-                fillOpacity: 0.2
-            };
+    constructor() {
+        this.map = new GameMap();
+        this.score = {
+            "total": 0,
+            "rounds": []
+        };
+    }
+
+    async init() {
+        await this.checkCookieConsent();
+        $("#game").show();
+        await this.map.init();
+    }
+
+    async checkCookieConsent() {
+
+        await new Promise(resolve => {
+            // check if cookie is set
+            if (document.cookie.indexOf("consent=true") >= 0) {
+                $("#cookie-banner").hide();
+                resolve();
+            }
+
+            $("#cookies").click(function () {
+                document.cookie = "consent=true; expires=Fri, 31 Dec 9999 23:59:59 GMT; path=/"
+
+                $("#cookie-banner").hide();
+
+                resolve();
+            });
+        });
+    }
+
+    endGame() {
+        $("#restart").show();
+    }
+
+    updateScoreDisplay(round) {
+        $("#score-value").text(this.score.total);
+
+        let html = `<tr>
+        <td>${round}</td>
+        <td>${this.score.rounds[round - 1]}</td>
+        </tr>`
+
+        $("#scoreboard").append(html);
+    }
+
+    showInfo() {
+        var info = $(".infotext");
+
+        if (info.hasClass("expanded")) {
+            info.removeClass("expanded");
+        } else {
+            info.addClass("expanded");
         }
-    }).addTo(map);//.tooltip("Distance: " + Math.round(dist) + " km").bindTooltip().openTooltip().addTo(map);
-}
+    }
 
-function update_score(dist) {
-    score += calculate_score(dist);
-    $("#score").text(score);
-}
+    runLoadingAnimation() {
+        $("#loader").show();
 
-function calculate_score(dist) {
-    var max_score = 5000;
-    var min_dist = 0;
-    var max_dist = 1000;
+        Promise.all(promises).then(function () {
+            $("#loader").hide();
+        });
+    }
 
-    // score is max_score at min_dist, 0 at max_dist
-    var score = Math.round(Math.min(Math.max(max_score * (1 - (dist - min_dist) / (max_dist - min_dist)), 0), max_score), 0);
+    showSpeciesName(name) {
+        $("#name").text(name).show();
+    }
 
-    return score;
-}
+    reset() {
+        $("#name").hide();
+        $("#next").hide();
 
-function get_data(isp){
-    var request = "https://nordegraf.github.io/plantGuessrData/json/species_" + isp + ".json";
+        this.map.clear();
+    }
 
-    var nobs = $.getJSON(request, function(data) {
-        species = data;
-
-        // get image urls
-        var imgs = [];
-        for (var i = 0; i < data.n.length; i++) {
-            imgs.push("https://inaturalist-open-data.s3.amazonaws.com/photos/" + data.n[i] + "/original." + data.i[i]);
-        }
+    showImages(images) {
+        let self = this;
 
         $("#images").empty();
 
-        for (var i = 0; i < imgs.length; i++) {
-            $("#images").append("<div class='carousel-item' id='plant-" + i + "'></div>");
-        }
+        images.forEach(function (img) {
+            self.showImageLoader();
+            $("#images").append(img.carouselItem());
+            $("#images").show();
+        });
+    }
 
-        for (var i = 0; i < imgs.length; i++) {
-            var img = $("<img />").attr('src', imgs[i]).addClass('d-block w-100 plant-img');
-            $("#plant-" + i).append(img);
-        }
-
-        imageLoader();
-
-        if (imgs.length > 1) {
+    showCarouselArrowsIfNecessary(numImages) {
+        if (numImages > 1) {
             $(".carousel-control-prev").show();
             $(".carousel-control-next").show();
         } else {
             $(".carousel-control-prev").hide();
             $(".carousel-control-next").hide();
         }
+    }
 
-        // set carousel to first image
-        $("#plant-0").addClass("active");
-    });
+    showImageLoader() {
+        let loaded = 0;
+        let numImages = $(".plant-img").length;
+        $("#imageloader").show();
 
-    return nobs;
+        // show loader while images are loading
+        $(".plant-img").on('load', function () {
+            loaded++;
+            if (loaded == numImages) {
+                $("#imageloader").hide();
+            }
+        });
+    }
+
+    addOnMapClick() {
+        this.map.addOnClick();
+    }
+
+    removeOnMapClick() {
+        this.map.removeOnClick();
+    }
+
+    updateScore(score) {
+        this.score.total += score;
+        this.score.rounds.push(score);
+    }
+
+
+    evaluateGuess(e, game) {
+        let self = game.window;
+        let species = game.currentSpecies;
+        let score = self.map.evaluateGuess(e, self.map, species);
+
+        self.updateScore(score);
+        let round = self.score.rounds.length;
+        self.updateScoreDisplay(round);
+
+
+        if (round < game.numRounds) {
+            $("#next").show();
+        } else {
+            $("#next").hide();
+            $("#restart").show();
+        }
+    }
+
 }
 
-function imageLoader() {
-    var loaded = 0;
-    numImages = $(".plant-img").length;
-    $("#imageloader").show();
+class Game {
 
-    // show loader while images are loading
-    $(".plant-img").on('load', function() {
-        loaded++;
-        if (loaded == numImages) {
-            $("#imageloader").hide();
+    constructor() {
+        this.window = new GameWindow();
+        this.numSpecies = 114800;
+        this.numRounds = 5;
+        this.currentSpecies = new Species();
+    }
+
+    async initGame() {
+        await this.window.init();
+        this.run();
+    }
+
+    async run() {
+
+        let n = this.numRounds;
+
+        for (var i = 0; i < n; i++) {
+
+            await this.startNewRound();
+
+            this.window.showImages(this.currentSpecies.getImages());
+
+            // wait for user to click next
+            await new Promise(resolve => $("#next").click(resolve));
+
+            this.window.reset();
         }
 
-        console.log("loaded " + loaded + " of " + numImages)
-    });
+        this.endGame();
+    }
+
+    async startNewRound() {
+        await this.getRandomSpecies();
+        this.window.addOnMapClick();
+    }
+
+    endRound(game) {
+        let self = game;
+        let gWindow = self.window;
+        gWindow.removeOnMapClick();
+
+        gWindow.showSpeciesName(this.currentSpecies.getScientificName());
+    }
+
+    async getRandomSpecies() {
+        let randomSpeciesID = Math.floor(Math.random() * this.numSpecies);
+
+        await this.currentSpecies.getSpecies(randomSpeciesID);
+    }
+}
+
+class Species {
+
+    constructor(id) {
+        this.scientificName = null;
+        this.isoCodes = null;
+        this.catalogNumbers = null;
+        this.owners = null;
+        this.licenses = null;
+        this.extensions = null;
+        this.images = [];
+    }
+
+    async getSpecies(id) {
+        let url = "https://nordegraf.github.io/plantGuessrData/json/species_" + id + ".json";
+
+        const response = await fetch(url);
+        let responseData = await response.json();
+
+        this.scientificName = responseData.s;
+        this.isoCodes = responseData.c;
+        this.catalogNumbers = responseData.n;
+        this.owners = responseData.r;
+        this.licenses = responseData.l;
+        this.extensions = responseData.i;
+        this.images = [];
+
+        this.generateImages();
+    }
+
+    generateImages() {
+        let numImages = this.getNumberOfImages();
+
+        for (var i = 0; i < numImages; i++) {
+            let img = new plantImage(this.catalogNumbers[i],
+                this.extensions[i],
+                this.owners[i],
+                this.licenses[i],
+                i);
+
+            this.images.push(img);
+        }
+    }
+
+    getNumberOfImages() {
+        return this.catalogNumbers.length;
+    }
+
+    getScientificName() {
+        return this.scientificName;
+    }
+
+    getISOCodes() {
+        return this.isoCodes;
+    }
+
+    getImages() {
+        return this.images;
+    }
+}
+
+
+class plantImage {
+
+    constructor(catalogNumber, extension, author, license, id) {
+        this.url = "https://inaturalist-open-data.s3.amazonaws.com/photos/" + catalogNumber + "/original." + extension;
+        this.author = author;
+        this.license = license;
+        this.id = id;
+
+        this.obj = $("<img />").attr('src', this.url).addClass('d-block plant-img');
+    }
+
+    carouselItem() {
+        // image with id 0 gets the active class
+        return `<div class='carousel-item${this.id == 0 ? " active" : ""}' id='plant-${this.id}'>
+                <div class="image-container">
+                ${this.obj.prop('outerHTML')}
+                <div class="attribution">
+                <span class="attribution">${this.author} | ${this.licenseAnchor(this.license)}</span>
+                </div>
+                </div>
+                </div>`;
+    }
+
+    licenseAnchor(license) {
+        var link = "";
+        if (license == "CC0 1.0") {
+            link = "https://creativecommons.org/publicdomain/zero/1.0/";
+        } else if (license == "CC BY 4.0") {
+            link = "https://creativecommons.org/licenses/by/4.0/";
+        } else if (license == "CC BY-NC 4.0") {
+            link = "https://creativecommons.org/licenses/by-nc/4.0/";
+        }
+
+        return `<a href="${link}" class="license">${license}</a>`;
+
+    }
 }
 
 function resize_map() {
     var height = $(window).height();
-    $("#map").height(height - 200);
-    $("#plant").height(height - 200);
+    $("#map").height(height);
 }
 
-function showName(name) {
-    // enter name
-    $("#name").text(name).show();
-}
-
-function load_countries() {
-    var loading_countries = $.getJSON("{{ "/assets/data/countries.geojson" | relative_url }}", function(data) {
-        countries = data;
+$(document).ready(function () {
+    $(".infobutton").on('click', function () {
+        game.window.showInfo();
     });
 
-    return loading_countries;
-}
-
-function loading(promises) {
-    $("#loader").show();
-
-    Promise.all(promises).then(function() {
-        $("#loader").hide();
+    $("#restart").on('click', function () {
+        location.reload();
     });
+
+});
+
+var game = new Game();
+var gWindow = new GameWindow();
+
+// must be global, to have access to the game and rounds
+function onGuessClick(e) {
+    let map = e.target;
+
+    gWindow.evaluateGuess(e, game);
+
+    game.endRound(game);
 }
+
+$(document).ready(async function () {
+    await game.initGame();
+});
